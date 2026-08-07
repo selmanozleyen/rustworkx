@@ -75,6 +75,47 @@ where
     }
 }
 
+/// Compute the local clustering coefficient of every node in an undirected graph.
+///
+/// The local clustering coefficient of a node is the number of triangles through the
+/// node divided by the number of connected triples centered on the node, i.e. the
+/// fraction of pairs of the node's neighbors that are connected by an edge. Nodes with
+/// fewer than two neighbors have a coefficient of ``0``.
+///
+/// This function is multithreaded and will launch a thread pool with threads equal to the
+/// number of CPUs by default. You can tune the number of threads with the
+/// ``RAYON_NUM_THREADS`` environment variable. For example, setting ``RAYON_NUM_THREADS=4``
+/// would limit the thread pool to 4 threads.
+///
+/// The function implicitly assumes that there are no parallel edges or self loops. It may
+/// produce incorrect/unexpected results if the input graph has self loops or parallel edges.
+///
+/// The returned vector is indexed by [`NodeIndexable::to_index`]; entries whose index does
+/// not correspond to a node are ``0``.
+pub fn graph_local_clustering<G>(graph: G) -> Vec<f64>
+where
+    G: NodeIndexable + IntoEdges + IntoNodeIdentifiers + Send + Sync,
+    G::NodeId: Hash + Eq + Send + Sync,
+{
+    let nodes: Vec<_> = graph.node_identifiers().collect();
+    let mut clustering = vec![0.0; graph.node_bound()];
+    let results: Vec<(usize, f64)> = nodes
+        .par_iter()
+        .map(|&node| {
+            let (triangles, triples) = graph_node_triangles(graph, node);
+            let coeff = match triples {
+                0 => 0.0,
+                _ => triangles as f64 / triples as f64,
+            };
+            (graph.to_index(node), coeff)
+        })
+        .collect();
+    for (index, coeff) in results {
+        clustering[index] = coeff;
+    }
+    clustering
+}
+
 /// Counts triangles and triples containing `node` of the given directed graph.
 fn digraph_node_triangles<G>(graph: G, node: G::NodeId) -> (usize, usize)
 where
@@ -157,7 +198,8 @@ mod test_transitivity {
     };
 
     use super::{
-        digraph_node_triangles, digraph_transitivity, graph_node_triangles, graph_transitivity,
+        digraph_node_triangles, digraph_transitivity, graph_local_clustering, graph_node_triangles,
+        graph_transitivity,
     };
 
     #[test]
@@ -228,6 +270,39 @@ mod test_transitivity {
         graph.add_node(());
         graph.add_edge(a, b, ());
         assert_eq!(graph_transitivity(&graph), 0.0)
+    }
+
+    #[test]
+    fn test_local_clustering() {
+        let mut graph: UnGraph<(), ()> = Graph::with_capacity(5, 6);
+        let a = graph.add_node(());
+        let b = graph.add_node(());
+        let c = graph.add_node(());
+        let d = graph.add_node(());
+        let e = graph.add_node(());
+        graph.extend_with_edges([(a, b), (b, c), (a, c), (a, d), (c, d), (d, e)]);
+        // a: T=2 C(3,2)=3 -> 2/3; b: deg 2, neighbors a-c connected -> 1; c: 2/3;
+        // d: T=1 C(3,2)=3 -> 1/3; e: deg 1 -> 0
+        assert_eq!(
+            graph_local_clustering(&graph),
+            vec![2.0 / 3.0, 1.0, 2.0 / 3.0, 1.0 / 3.0, 0.0]
+        );
+    }
+
+    #[test]
+    fn test_local_clustering_triangle() {
+        let mut graph: UnGraph<(), ()> = Graph::with_capacity(3, 3);
+        let a = graph.add_node(());
+        let b = graph.add_node(());
+        let c = graph.add_node(());
+        graph.extend_with_edges([(a, b), (a, c), (b, c)]);
+        assert_eq!(graph_local_clustering(&graph), vec![1.0, 1.0, 1.0]);
+    }
+
+    #[test]
+    fn test_local_clustering_empty() {
+        let graph: UnGraph<(), ()> = Graph::with_capacity(0, 0);
+        assert_eq!(graph_local_clustering(&graph), Vec::<f64>::new());
     }
 
     #[test]

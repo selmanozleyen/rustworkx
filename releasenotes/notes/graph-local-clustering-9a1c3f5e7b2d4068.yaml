@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Added a new function, :func:`~rustworkx.graph_local_clustering`, which computes
+    the local clustering coefficient of every node in a :class:`~rustworkx.PyGraph`.
+    The local clustering coefficient of a node is the fraction of pairs of its
+    neighbors that are connected by an edge. The function returns a
+    :class:`~rustworkx.CentralityMapping` mapping each node index to its coefficient.
+    For example:
+
+    .. jupyter-execute::
+
+        import rustworkx as rx
+
+        graph = rx.generators.complete_graph(4)
+        print(rx.graph_local_clustering(graph))

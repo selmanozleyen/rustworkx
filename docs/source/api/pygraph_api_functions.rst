@@ -36,6 +36,7 @@ typed API based on the data type.
    rustworkx.graph_dfs_edges
    rustworkx.graph_dfs_search
    rustworkx.graph_transitivity
+   rustworkx.graph_local_clustering
    rustworkx.graph_core_number
    rustworkx.graph_complement
    rustworkx.local_complement

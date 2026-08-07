@@ -270,6 +270,7 @@ from .rustworkx import graph_tensor_product as graph_tensor_product
 from .rustworkx import graph_token_swapper as graph_token_swapper
 from .rustworkx import digraph_transitivity as digraph_transitivity
 from .rustworkx import graph_transitivity as graph_transitivity
+from .rustworkx import graph_local_clustering as graph_local_clustering
 from .rustworkx import digraph_generate_random_path as digraph_generate_random_path
 from .rustworkx import graph_generate_random_path as graph_generate_random_path
 from .rustworkx import digraph_bfs_search as digraph_bfs_search

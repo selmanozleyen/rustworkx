@@ -646,6 +646,7 @@ fn rustworkx(py: Python<'_>, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(minimum_spanning_tree))?;
     m.add_wrapped(wrap_pyfunction!(graph_transitivity))?;
     m.add_wrapped(wrap_pyfunction!(digraph_transitivity))?;
+    m.add_wrapped(wrap_pyfunction!(graph_local_clustering))?;
     m.add_wrapped(wrap_pyfunction!(graph_token_swapper))?;
     m.add_wrapped(wrap_pyfunction!(graph_core_number))?;
     m.add_wrapped(wrap_pyfunction!(digraph_core_number))?;

@@ -12,6 +12,8 @@
 
 use super::{digraph, graph};
 
+use crate::iterators::CentralityMapping;
+
 use pyo3::prelude::*;
 
 use rustworkx_core::transitivity as core_transitivity;
@@ -46,6 +48,46 @@ use rustworkx_core::transitivity as core_transitivity;
 #[pyo3(text_signature = "(graph, /)")]
 pub fn graph_transitivity(graph: &graph::PyGraph) -> f64 {
     core_transitivity::graph_transitivity(&graph.graph)
+}
+
+/// Compute the local clustering coefficient of each node in an undirected graph.
+///
+/// The local clustering coefficient of a node is defined as:
+///
+/// .. math::
+///     `c_v = \frac{\text{number of triangles through } v}{\text{number of connected triples centered on } v}`
+///
+/// which is the fraction of pairs of ``v``'s neighbors that are connected by an edge.
+/// Nodes with fewer than two neighbors have a coefficient of ``0``.
+///
+/// This function is multithreaded and will
+/// launch a thread pool with threads equal to the number of CPUs by default.
+/// You can tune the number of threads with the ``RAYON_NUM_THREADS``
+/// environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would
+/// limit the thread pool to 4 threads.
+///
+/// .. note::
+///
+///     The function implicitly assumes that there are no parallel edges
+///     or self loops. It may produce incorrect/unexpected results if the
+///     input graph has self loops or parallel edges.
+///
+/// :param PyGraph graph: Graph to be used.
+///
+/// :returns: a read-only dict-like object whose keys are the node indices and values are the
+///      local clustering coefficient for each node.
+/// :rtype: CentralityMapping
+#[pyfunction]
+#[pyo3(text_signature = "(graph, /)")]
+pub fn graph_local_clustering(graph: &graph::PyGraph) -> CentralityMapping {
+    let clustering = core_transitivity::graph_local_clustering(&graph.graph);
+    CentralityMapping {
+        centralities: graph
+            .graph
+            .node_indices()
+            .map(|i| (i.index(), clustering[i.index()]))
+            .collect(),
+    }
 }
 
 /// Compute the transitivity of a directed graph.
